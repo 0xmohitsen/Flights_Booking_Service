@@ -45,7 +45,7 @@ async function makePayment(data){
     try {
         const bookingDetails = await bookingRepository.getBooking(data.bookingId);
 
-        if(bookingDetails.status == CANCELLED){
+        if(bookingDetails.status === CANCELLED){
             throw new AppError('The booking has expired', StatusCodes.BAD_REQUEST);
         }
 
@@ -53,7 +53,8 @@ async function makePayment(data){
         const currentTime = new Date();
         
         if(currentTime - bookingTime > 1200000){
-            await bookingRepository.updateBooking({status: CANCELLED}, data.bookingId, transaction);
+            // await bookingRepository.updateBooking({status: CANCELLED}, data.bookingId, transaction);
+            await cancelBooking(data.bookingId);
             throw new AppError('The booking has expired', StatusCodes.BAD_REQUEST);
         }
 
@@ -75,7 +76,47 @@ async function makePayment(data){
     }
 }
 
+async function cancelBooking(bookingId){
+    const transaction = await db.sequelize.transaction();
+    try {
+        const bookingDetails = await bookingRepository.getBooking(bookingId);
+
+        if(bookingDetails.status === CANCELLED){
+            await transaction.commit();
+            return true;
+        }
+
+        // first increase the no of seats in that booked flight
+        await axios.patch(`${ServerConfig.FLIGHT_SERVICE}/api/v1/flights/$"{bookingDetails.flightId}/seats`, {
+            seats: bookingDetails.noOfSeats,
+            dec: 0
+        });
+
+        // now update the entry of the bookingId in booking table
+        await bookingRepository.updateBooking({status: CANCELLED}, bookingId, transaction);
+
+        await transaction.commit();
+    } catch (error) {
+        await transaction.rollback();
+        throw error;
+    }
+}
+
+async function cancelOldBooking(){
+    try {
+        console.log("Inside service");
+        const time = new Date(Date.now() - 1000*300); // 5 min ago from the current time
+        const response = await bookingRepository.cancelOldBookings(time);
+        return response;
+    } catch (error) {
+        console.log(error);
+        throw error;
+    }
+}
+
 module.exports = {
     createBooking,
-    makePayment
+    makePayment,
+    cancelBooking,
+    cancelOldBooking
 }
