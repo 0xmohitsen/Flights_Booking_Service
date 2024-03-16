@@ -2,7 +2,7 @@ const { BookingRepository } = require('../repositories');
 
 const db = require('../models');
 const axios = require('axios');
-const { ServerConfig } = require('../config');
+const { ServerConfig, Queue } = require('../config');
 const AppError = require('../utils/error/app-error');
 const { StatusCodes } = require('http-status-codes');
 
@@ -68,6 +68,12 @@ async function makePayment(data){
 
         // NOW WE'LL ASSUME THAT PAYMENT IS SUCCESSFUL
         await bookingRepository.updateBooking({status: BOOKED}, data.bookingId, transaction);
+
+        Queue.sendData({
+            content: `Ticket Booked`,
+            text: `Ticket is booked for the booking Id: ${data.bookingId}.`,
+            recipientEmail: 'mohitsen0103@gmail.com'
+        });
 
         await transaction.commit();
     } catch (error) {
