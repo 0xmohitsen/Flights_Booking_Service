@@ -47,7 +47,7 @@ To run the project locally, follow these steps:
 1. Clone the repository: `git clone https://github.com/Mohitsen11/Flights_Booking_Service.git`
 2. Install dependencies: `npm install`
 3. Configure environment variables
-4. Start each service: `npm run dev`
+4. Start each service: `npm run start`
 
 ## Contributing
 
