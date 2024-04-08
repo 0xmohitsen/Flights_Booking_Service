@@ -36,7 +36,9 @@ async function createBooking(data){
         return booking;
     } catch(error) {
         await transaction.rollback();
-        throw error;
+        // console.log(error);
+        if(error instanceof AppError) throw error;
+        throw new AppError('Something went wrong while booking the flight', StatusCodes.INTERNAL_SERVER_ERROR);
     }
 }
 
@@ -69,6 +71,13 @@ async function makePayment(data){
         // NOW WE'LL ASSUME THAT PAYMENT IS SUCCESSFUL
         await bookingRepository.updateBooking({status: BOOKED}, data.bookingId, transaction);
 
+        // await axios.post(`${ServerConfig.FLIGHT_NOTIFICATION_SERVICE}/api/v1/tickets`, {
+        //     subject: 'Ticket is booked',
+        //     content: 'Ticket is booked successfully',
+        //     recipientEmail: 'mohitsen0103@gmail.com',
+        //     notificationTime: new Date()
+        // })
+
         Queue.sendData({
             content: `Ticket Booked`,
             text: `Ticket is booked for the booking Id: ${data.bookingId}.`,
@@ -78,7 +87,9 @@ async function makePayment(data){
         await transaction.commit();
     } catch (error) {
         await transaction.rollback();
-        throw error;
+        console.log(error);
+        if(error instanceof AppError) throw error;
+        throw new AppError('Something went wrong while making the payment', StatusCodes.INTERNAL_SERVER_ERROR);
     }
 }
 
