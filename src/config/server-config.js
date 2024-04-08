@@ -1,5 +1,4 @@
 const dotenv = require('dotenv');
-const { PROCESSING } = require('http-status-codes');
 
 dotenv.config();
 
